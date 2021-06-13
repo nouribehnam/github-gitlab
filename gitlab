@@ -1,0 +1,119 @@
+Install Gitlab-ce with Runner:
+
+Prerequisite:
+
+$ apt update
+$ apt install -y curl openssh-server ca-certificates
+
+Install Gitlab-ce:
+
+$ curl https://packages.gitlab.com/install/repositories/gitlab/gitlab-ce/script.deb.sh | sudo bash
+$ apt -y install gitlab-ce
+$ gitlab-ctl start
+
+Config Gitlab based on your requirements (for example):
+
+$ vim /etc/gitlab/gitlab.rb
+
+external_url 'https://hamed.navatel.ir'
+
+nginx['redirect_http_to_https'] = true
+
+nginx['ssl_certificate'] = "/etc/gitlab/ssl/hamed.navatel.ir.pem"
+
+nginx['ssl_certificate_key'] = "/etc/gitlab/ssl/hamed.navatel.ir.key"
+
+letsencrypt['enable'] = false
+
+$ gitlab-ctl reconfigure
+$ gitlab-ctl status
+
+Use Gitlab URL to login and check the service.
+
+Install and register Runner:
+
+$ curl -L --output /usr/local/bin/gitlab-runner "https://gitlab-runner-downloads.s3.amazonaws.com/latest/binaries/gitlab-runner-linux-amd64" && chmod +x /usr/local/bin/gitlab-runner
+
+$ useradd --comment 'GitLab Runner' --create-home gitlab-runner --shell /bin/bash
+
+$ gitlab-runner install --user=gitlab-runner –working-directory=/home/gitlab-runner
+
+$ gitlab-runner start
+
+Register Runner:
+
+$ gitlab-runner register
+
+It needs several entry:
+
+1- Enter your GitLab instance URL (also known as the gitlab-ci coordinator URL)
+2- Enter the token you obtained to register the runner.
+Note. This 2 arguments are available on Admin Area > Overview > Runner
+3- Enter a description for the runner. You can change this value later in the GitLab user interface.
+4- Enter the tags associated with the runner, separated by commas. You can change this value later in the GitLab user interface.
+5- Provide the runner executor. For our use cases, enter docker.
+6- If you entered docker as your executor, you’ll be asked for the default image to be used for projects that do not define one in .gitlab-ci.yml .
+In this case, for DinD (Docker in Docker) usage, Docker should be installed:
+
+$ apt -y install apt-transport-https ca-certificates curl gnupg lsb-release
+$ curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+$ echo "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+$ apt update
+$ apt -y install docker-ce docker-ce-cli containerd.io
+$ systemctl status docker
+
+Note. Don’t forget to set insecure registries:
+
+$ vim /etc/docker/daemon.json
+
+{ "insecure-registries":["docker.nava.local:8021", "docker.nava.local:8022", "reg.navatel.ir:5000"] }
+
+$ systemctl restart docker
+
+Runner configuration:
+
+$ vim /etc/gitlab-runner/config.toml
+
+concurrent = 1
+check_interval = 0
+
+[session_server]
+  session_timeout = 1800
+
+[[runners]]
+  name = "initialize runner for test purposes"
+  url = "https://hamed.navatel.ir/"
+  token = "Gfn4iC6hYwrTNVNmDy87"
+  executor = "docker"
+  environment = ["DOCKER_AUTH_CONFIG={\"auths\":{\"docker.nava.local:8021\":{\"auth\":\"dXNlcjpwYXNz\"}}}"]
+  [runners.custom_build_dir]
+  [runners.cache]
+    [runners.cache.s3]
+    [runners.cache.gcs]
+    [runners.cache.azure]
+  [runners.docker]
+    tls_verify = false
+    image = "docker:dind"
+    privileged = true
+    disable_entrypoint_overwrite = false
+    oom_kill_disable = false
+    disable_cache = false
+    volumes = ["/cache", "/var/run/docker.sock:/var/run/docker.sock"]
+    shm_size = 0
+
+Note. For  DOCKER_AUTH_CONFIG use the following command to generate base64 auth token.
+
+$ echo -n "user:pass" | base64
+
+dXNlcjpwYXNz
+
+Note. Don’t forget to mount  docker.sock of host to container.
+
+Note. If your container doesn’t have privileged = true can NOT communicate with host.
+
+Restart Runner to apply changes:
+
+$ gitlab-runner restart
+
+
+You’re done.
