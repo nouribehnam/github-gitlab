@@ -1,0 +1,20 @@
+Gitlab Cheat Sheet:
+
+Here we’re going to discuss about some tricky point about Gitlab:
+
+1- You can find detail about Runners in Admin Area > Overview > Runners
+2- You can have several Runners with different descriptions, Tags, and Executors for different tasks and  projects.
+3- You can have several machines for several Runners in case of reduce lack of resources in huge number of commits.
+4- You can check the all running jobs in Admin Area > Overview > Jobs
+5- Before creating new project in Gitlab, make sure you’re in correct Group, do NOT create projects in personal group.
+6- Each DinD Runner should have a default image, first, when you register a runner, second, at first line of .gitlab-ci.yml, and third, on specific stage add image line to bypass previous default images.
+7- On gitlab-ci, stages run based on branch name (develop, master). At the end, develop branch deploy on dev environment and master branch deploy on stage environment.
+8- For production environment, developers should create a new tag on Gitlab UI. After tag creation gitlab-ci stages will be run till build and push image to local registry.
+9- On Gitlab UI, you can merge to branch with create a merge request from left panel of project.
+10- There is three different variables on gitlab-ci, Gitlab default variables (https://docs.gitlab.com/ee/ci/variables/predefined_variables.html), defined variables on each project (Project > Settings > CI/CD > Variables), and defined variables on gitlab-ci file.
+11- Each gitlab-ci has three main stages, first, build and add required packages to project, second, create Dockerfile, build, and push to local registery, third, deploy on K8s for dev and stage environments.
+12- Turn off Auto-DevOps on the following path (Project > Setting > CI/CD > Auto DevOps).
+13- For check branch on project in CLI use (git branch)
+14- For change branch on project in CLI use (git checkout develop)
+15- For revert changes on project in CLI use (git stash)
+16- For check changes on project in CLI use (git diff)
